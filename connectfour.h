@@ -17,14 +17,14 @@ using namespace std;
 struct Move {
     int col;
     int player;
+    int score;
 
-    Move() : col(-1), player(0) {}
-    Move(int c, int p) : col(c), player(p) {}
+    Move() : col(-1), player(0), score(0) {}
+    Move(int c, int p) : col(c), player(p), score(0) {}
+    Move(int c, int p, int s) : col(c), player(p), score(s) {}
 };
 
-
-int miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int alpha = -1000, int beta = 1000);
-
+Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int alpha = -1000, int beta = 1000);
 
 
 
@@ -89,20 +89,9 @@ Move userMove(vector<vector<int>>& board){
 }
 
 Move aiMove(vector<vector<int>>& board){
-    int bestScore = -1000;
-    Move bestMove;
-    for (int col = 0; col < NUM_COLS; col++){
-        if (board[0][col] == 0){ // Check if column is not full
-            makeMove(board, Move(col, COMPUTER));
-            int score = miniMax(board, false, DEPTH);
-            makeMove(board, Move(col, 0)); // Undo move
-            if (score > bestScore){
-                bestScore = score;
-                bestMove = Move(col, COMPUTER);
-            }
-        }
-    }
-    return bestMove;
+    Move best = miniMax(board, true, DEPTH);
+    best.player = COMPUTER;
+    return best;
 }
 
 bool isWinning(vector<vector<int>>& board, int player){
@@ -157,17 +146,17 @@ bool isWinning(vector<vector<int>>& board, int player){
     return false;
 }
 
-int miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int alpha, int beta){
+Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int alpha, int beta){
     
     if (depth < 1){
-        return 0;
+        return Move(-1, 0, 0);
     }
     
     if (isWinning(boardCopy, COMPUTER)){
-        return 1000;
+        return Move(-1, 0, 1000);
     } 
     if (isWinning(boardCopy, PLAYER)){
-        return -1000;
+        return Move(-1, 0, -1000);
     }
     
     bool boardFull = true;
@@ -178,46 +167,48 @@ int miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int alp
         }
     }
     if (boardFull){
-        return 0;
+        return Move(-1, 0, 0);
     }
     
     if (isMaximizing){
-        int maxEval = -1000;
+        Move bestMove(-1, COMPUTER, -1000);
         for (int c = 0; c < NUM_COLS; c++){
             if (boardCopy[0][c] == 0){
                 makeMove(boardCopy, Move(c, COMPUTER));
-                int eval = miniMax(boardCopy, false, depth - 1, alpha, beta);
+                Move result = miniMax(boardCopy, false, depth - 1, alpha, beta);
                 makeMove(boardCopy, Move(c, 0)); //undo the move
-                if (eval > maxEval){
-                    maxEval = eval;
+                if (result.score > bestMove.score){
+                    bestMove.score = result.score;
+                    bestMove = result;
                 }
-                if (eval > alpha){
-                    alpha = eval;
+                if (result.score > alpha){
+                    alpha = result.score;
                 }
                 if (beta <= alpha){
                     break; // Beta cutoff
                 }
             }
         }
-        return maxEval;
+        return bestMove;
     } else {
-        int minEval = 1000;
+        Move bestMove(-1, PLAYER, 1000);
         for (int c = 0; c < NUM_COLS; c++){
             if (boardCopy[0][c] == 0){
                 makeMove(boardCopy, Move(c, PLAYER));
-                int eval = miniMax(boardCopy, true, depth - 1, alpha, beta);
+                Move result = miniMax(boardCopy, true, depth - 1, alpha, beta);
                 makeMove(boardCopy, Move(c, 0)); //undo the move
-                if (eval < minEval){
-                    minEval = eval;
+                if (result.score < bestMove.score){
+                    bestMove.score = result.score;
+                    bestMove = result;
                 }
-                if (eval < beta){
-                    beta = eval;
+                if (result.score < beta){
+                    beta = result.score;
                 }
                 if (beta <= alpha){
                     break; // Alpha cutoff
                 }
             }
         }
-        return minEval;
+        return bestMove;
     }
 }

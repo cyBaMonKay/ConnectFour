@@ -151,8 +151,8 @@ void testNoWinEmptyBoard() {
 void testMiniMaxEmptyBoard() {
     vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
     initBoard(board);
-    int result = miniMax(board, true, 1);
-    assert_equal(result, 0, "MiniMax_EmptyBoard");
+    Move result = miniMax(board, true, 1);
+    assert_equal(result.score, 0, "MiniMax_EmptyBoard");
 }
 
 void testMiniMaxComputerWinning() {
@@ -162,8 +162,8 @@ void testMiniMaxComputerWinning() {
     board[NUM_ROWS - 1][1] = COMPUTER;
     board[NUM_ROWS - 1][2] = COMPUTER;
     board[NUM_ROWS - 1][3] = COMPUTER;
-    int result = miniMax(board, true, 1);
-    assert_equal(result, 1000, "MiniMax_ComputerWinning");
+    Move result = miniMax(board, true, 1);
+    assert_equal(result.score, 1000, "MiniMax_ComputerWinning");
 }
 
 void testMiniMaxPlayerWinning() {
@@ -173,8 +173,8 @@ void testMiniMaxPlayerWinning() {
     board[NUM_ROWS - 1][1] = PLAYER;
     board[NUM_ROWS - 1][2] = PLAYER;
     board[NUM_ROWS - 1][3] = PLAYER;
-    int result = miniMax(board, false, 1);
-    assert_equal(result, -1000, "MiniMax_PlayerWinning");
+    Move result = miniMax(board, false, 1);
+    assert_equal(result.score, -1000, "MiniMax_PlayerWinning");
 }
 
 void testMoveStructConstructors() {
