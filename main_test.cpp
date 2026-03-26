@@ -155,6 +155,38 @@ void testMiniMaxEmptyBoard() {
     assert_equal(result.score, 0, "MiniMax_EmptyBoard");
 }
 
+void testMiniMaxReturnsValidColumn() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    Move result = miniMax(board, true, 1);
+    assert_true(result.col >= 0 && result.col < NUM_COLS, "MiniMax_ReturnsValidColumn");
+}
+
+void testMiniMaxTakesImmediateWin() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][0] = COMPUTER;
+    board[NUM_ROWS - 1][1] = COMPUTER;
+    board[NUM_ROWS - 1][2] = COMPUTER;
+
+    Move result = miniMax(board, true, 1);
+
+    assert_equal(result.col, 3, "MiniMax_TakesImmediateWin_Col");
+    assert_equal(result.score, 1000, "MiniMax_TakesImmediateWin_Score");
+}
+
+void testMiniMaxBlocksImmediateLoss() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][0] = PLAYER;
+    board[NUM_ROWS - 1][1] = PLAYER;
+    board[NUM_ROWS - 1][2] = PLAYER;
+
+    Move result = miniMax(board, true, 2);
+
+    assert_equal(result.col, 3, "MiniMax_BlocksImmediateLoss_Col");
+}
+
 void testMiniMaxComputerWinning() {
     vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
     initBoard(board);
@@ -203,6 +235,9 @@ int main() {
     testNoWinWithThreeInRow();
     testNoWinEmptyBoard();
     testMiniMaxEmptyBoard();
+    testMiniMaxReturnsValidColumn();
+    testMiniMaxTakesImmediateWin();
+    testMiniMaxBlocksImmediateLoss();
     testMiniMaxComputerWinning();
     testMiniMaxPlayerWinning();
     testMoveStructConstructors();

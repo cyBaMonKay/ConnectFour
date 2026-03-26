@@ -147,16 +147,15 @@ bool isWinning(vector<vector<int>>& board, int player){
 }
 
 Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int alpha, int beta){
-    
-    if (depth < 1){
-        return Move(-1, 0, 0);
-    }
-    
     if (isWinning(boardCopy, COMPUTER)){
         return Move(-1, 0, 1000);
-    } 
+    }
     if (isWinning(boardCopy, PLAYER)){
         return Move(-1, 0, -1000);
+    }
+
+    if (depth < 1){
+        return Move(-1, 0, 0);
     }
     
     bool boardFull = true;
@@ -178,8 +177,7 @@ Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int al
                 Move result = miniMax(boardCopy, false, depth - 1, alpha, beta);
                 makeMove(boardCopy, Move(c, 0)); //undo the move
                 if (result.score > bestMove.score){
-                    bestMove.score = result.score;
-                    bestMove = result;
+                    bestMove = Move(c, COMPUTER, result.score);
                 }
                 if (result.score > alpha){
                     alpha = result.score;
@@ -198,8 +196,7 @@ Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int al
                 Move result = miniMax(boardCopy, true, depth - 1, alpha, beta);
                 makeMove(boardCopy, Move(c, 0)); //undo the move
                 if (result.score < bestMove.score){
-                    bestMove.score = result.score;
-                    bestMove = result;
+                    bestMove = Move(c, PLAYER, result.score);
                 }
                 if (result.score < beta){
                     beta = result.score;
@@ -212,3 +209,6 @@ Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int al
         return bestMove;
     }
 }
+
+
+
