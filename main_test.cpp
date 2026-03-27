@@ -151,7 +151,7 @@ void testNoWinEmptyBoard() {
 void testMiniMaxEmptyBoard() {
     vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
     initBoard(board);
-    Move result = miniMax(board, true, 1);
+    Move result = miniMax(board, true, 0);
     assert_equal(result.score, 0, "MiniMax_EmptyBoard");
 }
 

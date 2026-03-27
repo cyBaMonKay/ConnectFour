@@ -146,6 +146,71 @@ bool isWinning(vector<vector<int>>& board, int player){
     return false;
 }
 
+int evaluateWindow(vector<int>& window) {
+    int score = 0;
+    int computerCount = 0, playerCount = 0, emptyCount = 0;
+    for (int cell : window) {
+        if      (cell == COMPUTER) computerCount++;
+        else if (cell == PLAYER)   playerCount++;
+        else                       emptyCount++;
+    }
+    if      (computerCount == 3 && emptyCount == 1) score += 5;
+    else if (computerCount == 2 && emptyCount == 2) score += 2;
+
+    if      (playerCount == 3 && emptyCount == 1) score -= 5;
+    else if (playerCount == 2 && emptyCount == 2) score -= 2;
+
+    return score;
+}
+
+int evaluateBoard(vector<vector<int>>& board) {
+    if (isWinning(board, COMPUTER)) return 1000;
+    if (isWinning(board, PLAYER))   return -1000;
+
+    int score = 0;
+
+    // Center column preference
+    int centerCol = NUM_COLS / 2;
+    for (int r = 0; r < NUM_ROWS; r++) {
+        if      (board[r][centerCol] == COMPUTER) score += 3;
+        else if (board[r][centerCol] == PLAYER)   score -= 3;
+    }
+
+    // Horizontal windows
+    for (int r = 0; r < NUM_ROWS; r++) {
+        for (int c = 0; c <= NUM_COLS - 4; c++) {
+            vector<int> window = {board[r][c], board[r][c+1], board[r][c+2], board[r][c+3]};
+            score += evaluateWindow(window);
+        }
+    }
+
+    // Vertical windows
+    for (int r = 0; r <= NUM_ROWS - 4; r++) {
+        for (int c = 0; c < NUM_COLS; c++) {
+            vector<int> window = {board[r][c], board[r+1][c], board[r+2][c], board[r+3][c]};
+            score += evaluateWindow(window);
+        }
+    }
+
+    // Diagonal (top-left to bottom-right)
+    for (int r = 0; r <= NUM_ROWS - 4; r++) {
+        for (int c = 0; c <= NUM_COLS - 4; c++) {
+            vector<int> window = {board[r][c], board[r+1][c+1], board[r+2][c+2], board[r+3][c+3]};
+            score += evaluateWindow(window);
+        }
+    }
+
+    // Diagonal (top-right to bottom-left)
+    for (int r = 0; r <= NUM_ROWS - 4; r++) {
+        for (int c = 3; c < NUM_COLS; c++) {
+            vector<int> window = {board[r][c], board[r+1][c-1], board[r+2][c-2], board[r+3][c-3]};
+            score += evaluateWindow(window);
+        }
+    }
+
+    return score;
+}
+
 Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int alpha, int beta){
     if (isWinning(boardCopy, COMPUTER)){
         return Move(-1, 0, 1000);
@@ -155,7 +220,7 @@ Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int al
     }
 
     if (depth < 1){
-        return Move(-1, 0, 0);
+        return Move(-1, 0, evaluateBoard(boardCopy));
     }
     
     bool boardFull = true;
