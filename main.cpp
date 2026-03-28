@@ -25,5 +25,14 @@ int main (int argc, char** argv) {
         
     }
 
+    cout << "Game Over!" << endl;
+    if (isWinning(board, PLAYER)){
+        cout << "Congratulations! You win!" << endl;
+    } else if (isWinning(board, COMPUTER)){
+        cout << "Computer wins! Better luck next time." << endl;
+    } else {
+        cout << "It's a draw!" << endl;
+    }
+
     return 0;
 }
