@@ -4,6 +4,13 @@
 
 using namespace std;
 
+// Clears the terminal screen using ANSI escape codes.
+// \033[2J clears the screen; \033[H moves the cursor to the home position.
+// Works on ANSI-compatible terminals (Unix/Linux/macOS and modern Windows).
+void clearConsole() {
+    cout << "\033[2J\033[H" << flush;
+}
+
 int main (int argc, char** argv) {
     vector<vector<int>> board (NUM_ROWS, vector<int> (NUM_COLS));
     bool gameOver = false;
@@ -12,10 +19,14 @@ int main (int argc, char** argv) {
 
     while (!gameOver){
         if (turns % 2 == 0){ // Player's turn
+            clearConsole();
+            printBoard(board);
+            cout << "================================" << endl;
             makeMove(board, userMove(board));
         }  
          else { // Computer's turn
             makeMove(board, aiMove(board));
+            clearConsole();
             printBoard(board);
             cout << "================================" << endl;
         }
