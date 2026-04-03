@@ -31,8 +31,8 @@ int main (int argc, char** argv) {
             cout << "================================" << endl;
         }
 
-        gameOver = isWinning(board, PLAYER) || isWinning(board, COMPUTER) || turns == NUM_ROWS * NUM_COLS;
         turns++;
+        gameOver = isWinning(board, PLAYER) || isWinning(board, COMPUTER) || turns == NUM_ROWS * NUM_COLS;
         
     }
 
