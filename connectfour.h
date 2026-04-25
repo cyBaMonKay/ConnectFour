@@ -212,6 +212,7 @@ int evaluateBoard(vector<vector<int>>& board) {
 }
 
 Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int alpha, int beta){
+    const int moveOrder[NUM_COLS] = {3, 2, 4, 1, 5, 0, 6};
     if (isWinning(boardCopy, COMPUTER)){
         return Move(-1, 0, 1000);
     }
@@ -236,7 +237,8 @@ Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int al
     
     if (isMaximizing){
         Move bestMove(-1, COMPUTER, -1000);
-        for (int c = 0; c < NUM_COLS; c++){
+        for (int i = 0; i < NUM_COLS; i++){
+            int c = moveOrder[i];
             if (boardCopy[0][c] == 0){
                 makeMove(boardCopy, Move(c, COMPUTER));
                 Move result = miniMax(boardCopy, false, depth - 1, alpha, beta);
@@ -255,7 +257,8 @@ Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int al
         return bestMove;
     } else {
         Move bestMove(-1, PLAYER, 1000);
-        for (int c = 0; c < NUM_COLS; c++){
+        for (int i = 0; i < NUM_COLS; i++){
+            int c = moveOrder[i];
             if (boardCopy[0][c] == 0){
                 makeMove(boardCopy, Move(c, PLAYER));
                 Move result = miniMax(boardCopy, true, depth - 1, alpha, beta);
@@ -274,6 +277,4 @@ Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int al
         return bestMove;
     }
 }
-
-
 
