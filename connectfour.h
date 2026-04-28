@@ -24,7 +24,7 @@ struct Move {
     Move(int c, int p, int s) : col(c), player(p), score(s) {}
 };
 
-Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int alpha = -1000, int beta = 1000);
+Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int alpha = -1000, int beta = 1000);
 
 
 
@@ -211,7 +211,7 @@ int evaluateBoard(vector<vector<int>>& board) {
     return score;
 }
 
-Move miniMax(vector<vector<int>> boardCopy, bool isMaximizing, int depth, int alpha, int beta){
+Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int alpha, int beta){
     const int moveOrder[NUM_COLS] = {3, 2, 4, 1, 5, 0, 6};
     if (isWinning(boardCopy, COMPUTER)){
         return Move(-1, 0, 1000);
