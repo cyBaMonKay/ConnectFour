@@ -36,6 +36,8 @@
 *.exe
 *.out
 *.app
+connectfour
+test_runner
 
 # debug information files
 *.dwo

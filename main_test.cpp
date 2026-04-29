@@ -370,6 +370,73 @@ void testMiniMaxPlayerWinning() {
     assert_equal(result.score, -1000, "MiniMax_PlayerWinning");
 }
 
+void testIsWinningMove_Horizontal() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS-1][0] = PLAYER;
+    board[NUM_ROWS-1][1] = PLAYER;
+    board[NUM_ROWS-1][2] = PLAYER;
+    board[NUM_ROWS-1][3] = PLAYER;
+    assert_true(isWinningMove(board, PLAYER, NUM_ROWS-1, 3), "IsWinningMove_Horizontal_LastCell");
+    assert_true(isWinningMove(board, PLAYER, NUM_ROWS-1, 0), "IsWinningMove_Horizontal_FirstCell");
+    assert_false(isWinningMove(board, COMPUTER, NUM_ROWS-1, 3), "IsWinningMove_Horizontal_WrongPlayer");
+}
+
+void testIsWinningMove_Vertical() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[0][1] = PLAYER;
+    board[1][1] = PLAYER;
+    board[2][1] = PLAYER;
+    board[3][1] = PLAYER;
+    assert_true(isWinningMove(board, PLAYER, 3, 1), "IsWinningMove_Vertical_Bottom");
+    assert_true(isWinningMove(board, PLAYER, 0, 1), "IsWinningMove_Vertical_Top");
+    assert_false(isWinningMove(board, COMPUTER, 3, 1), "IsWinningMove_Vertical_WrongPlayer");
+}
+
+void testIsWinningMove_DiagonalDownRight() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[2][0] = COMPUTER;
+    board[3][1] = COMPUTER;
+    board[4][2] = COMPUTER;
+    board[5][3] = COMPUTER;
+    assert_true(isWinningMove(board, COMPUTER, 5, 3), "IsWinningMove_DiagonalDownRight_LastCell");
+    assert_true(isWinningMove(board, COMPUTER, 2, 0), "IsWinningMove_DiagonalDownRight_FirstCell");
+}
+
+void testIsWinningMove_DiagonalDownLeft() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[2][6] = PLAYER;
+    board[3][5] = PLAYER;
+    board[4][4] = PLAYER;
+    board[5][3] = PLAYER;
+    assert_true(isWinningMove(board, PLAYER, 5, 3), "IsWinningMove_DiagonalDownLeft_LastCell");
+    assert_true(isWinningMove(board, PLAYER, 2, 6), "IsWinningMove_DiagonalDownLeft_FirstCell");
+}
+
+void testIsWinningMove_NoWin() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS-1][0] = PLAYER;
+    board[NUM_ROWS-1][1] = PLAYER;
+    board[NUM_ROWS-1][2] = PLAYER;
+    assert_false(isWinningMove(board, PLAYER, NUM_ROWS-1, 2), "IsWinningMove_NoWin_ThreeInRow");
+    assert_false(isWinningMove(board, PLAYER, NUM_ROWS-1, 0), "IsWinningMove_NoWin_EmptyNeighbor");
+}
+
+void testGetDropRow() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    assert_equal(getDropRow(board, 0), NUM_ROWS - 1, "GetDropRow_EmptyColumn");
+    makeMove(board, Move(0, PLAYER));
+    assert_equal(getDropRow(board, 0), NUM_ROWS - 2, "GetDropRow_OneInColumn");
+    // Fill column 1 completely
+    for (int i = 0; i < NUM_ROWS; i++) makeMove(board, Move(1, PLAYER));
+    assert_equal(getDropRow(board, 1), -1, "GetDropRow_FullColumn");
+}
+
 void testMoveStructConstructors() {
     Move m1;
     assert_equal(m1.col, -1, "Move_DefaultConstructor_Col");
@@ -418,6 +485,12 @@ int main() {
     testMiniMaxComputerWinning();
     testMiniMaxPlayerWinning();
     testMoveStructConstructors();
+    testIsWinningMove_Horizontal();
+    testIsWinningMove_Vertical();
+    testIsWinningMove_DiagonalDownRight();
+    testIsWinningMove_DiagonalDownLeft();
+    testIsWinningMove_NoWin();
+    testGetDropRow();
 
     cout << endl << "========================================" << endl;
     cout << "TOTAL TESTS: " << (testsPassed + testsFailed) << endl;
