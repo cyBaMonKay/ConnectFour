@@ -24,7 +24,7 @@ struct Move {
     Move(int c, int p, int s) : col(c), player(p), score(s) {}
 };
 
-Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int alpha = -1000, int beta = 1000);
+Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int alpha = -1000, int beta = 1000, int lastRow = -1, int lastCol = -1);
 
 
 
@@ -71,6 +71,13 @@ void makeMove(vector<vector<int>>& board, Move move){
             }
         }
     }
+}
+
+int getDropRow(vector<vector<int>>& board, int col) {
+    for (int r = NUM_ROWS - 1; r >= 0; r--) {
+        if (board[r][col] == 0) return r;
+    }
+    return -1;
 }
 
 Move userMove(vector<vector<int>>& board){
@@ -146,6 +153,36 @@ bool isWinning(vector<vector<int>>& board, int player){
     return false;
 }
 
+bool isWinningMove(vector<vector<int>>& board, int player, int row, int col) {
+    int count;
+
+    // Horizontal
+    count = 1;
+    for (int c = col - 1; c >= 0 && board[row][c] == player; c--) count++;
+    for (int c = col + 1; c < NUM_COLS && board[row][c] == player; c++) count++;
+    if (count >= 4) return true;
+
+    // Vertical
+    count = 1;
+    for (int r = row - 1; r >= 0 && board[r][col] == player; r--) count++;
+    for (int r = row + 1; r < NUM_ROWS && board[r][col] == player; r++) count++;
+    if (count >= 4) return true;
+
+    // Diagonal down-right / up-left
+    count = 1;
+    for (int r = row - 1, c = col - 1; r >= 0 && c >= 0 && board[r][c] == player; r--, c--) count++;
+    for (int r = row + 1, c = col + 1; r < NUM_ROWS && c < NUM_COLS && board[r][c] == player; r++, c++) count++;
+    if (count >= 4) return true;
+
+    // Diagonal down-left / up-right
+    count = 1;
+    for (int r = row - 1, c = col + 1; r >= 0 && c < NUM_COLS && board[r][c] == player; r--, c++) count++;
+    for (int r = row + 1, c = col - 1; r < NUM_ROWS && c >= 0 && board[r][c] == player; r++, c--) count++;
+    if (count >= 4) return true;
+
+    return false;
+}
+
 int evaluateWindow(vector<int>& window) {
     int score = 0;
     int computerCount = 0, playerCount = 0, emptyCount = 0;
@@ -211,13 +248,20 @@ int evaluateBoard(vector<vector<int>>& board) {
     return score;
 }
 
-Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int alpha, int beta){
+Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int alpha, int beta, int lastRow, int lastCol){
     const int moveOrder[NUM_COLS] = {3, 2, 4, 1, 5, 0, 6};
-    if (isWinning(boardCopy, COMPUTER)){
-        return Move(-1, 0, 1000);
-    }
-    if (isWinning(boardCopy, PLAYER)){
-        return Move(-1, 0, -1000);
+    if (lastRow >= 0) {
+        int prevPlayer = isMaximizing ? PLAYER : COMPUTER;
+        if (isWinningMove(boardCopy, prevPlayer, lastRow, lastCol)) {
+            return Move(-1, 0, (prevPlayer == COMPUTER) ? 1000 : -1000);
+        }
+    } else {
+        if (isWinning(boardCopy, COMPUTER)){
+            return Move(-1, 0, 1000);
+        }
+        if (isWinning(boardCopy, PLAYER)){
+            return Move(-1, 0, -1000);
+        }
     }
 
     if (depth < 1){
@@ -240,8 +284,9 @@ Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int a
         for (int i = 0; i < NUM_COLS; i++){
             int c = moveOrder[i];
             if (boardCopy[0][c] == 0){
+                int dropRow = getDropRow(boardCopy, c);
                 makeMove(boardCopy, Move(c, COMPUTER));
-                Move result = miniMax(boardCopy, false, depth - 1, alpha, beta);
+                Move result = miniMax(boardCopy, false, depth - 1, alpha, beta, dropRow, c);
                 makeMove(boardCopy, Move(c, 0)); //undo the move
                 if (result.score > bestMove.score){
                     bestMove = Move(c, COMPUTER, result.score);
@@ -260,8 +305,9 @@ Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int a
         for (int i = 0; i < NUM_COLS; i++){
             int c = moveOrder[i];
             if (boardCopy[0][c] == 0){
+                int dropRow = getDropRow(boardCopy, c);
                 makeMove(boardCopy, Move(c, PLAYER));
-                Move result = miniMax(boardCopy, true, depth - 1, alpha, beta);
+                Move result = miniMax(boardCopy, true, depth - 1, alpha, beta, dropRow, c);
                 makeMove(boardCopy, Move(c, 0)); //undo the move
                 if (result.score < bestMove.score){
                     bestMove = Move(c, PLAYER, result.score);
