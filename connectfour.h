@@ -1,5 +1,7 @@
 #include <iostream>
 #include <vector>
+#include <unordered_map>
+#include <cstdint>
 
 using namespace std;
 
@@ -26,8 +28,50 @@ struct Move {
 
 Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int alpha = -1000, int beta = 1000, int lastRow = -1, int lastCol = -1);
 
+// ============ TRANSPOSITION TABLE ============
 
+enum BoundType { EXACT, LOWERBOUND, UPPERBOUND };
 
+struct TTEntry {
+    uint64_t hash;
+    int depth;
+    int score;
+    int bestCol;
+    BoundType bound;
+};
+
+static uint64_t zobristKeys[NUM_ROWS][NUM_COLS][3]; // 0=empty, 1=PLAYER, 2=COMPUTER
+static uint64_t zobristTurnKey;
+static bool zobristInitialized = false;
+static unordered_map<uint64_t, TTEntry> transpositionTable;
+
+static void initZobrist() {
+    if (zobristInitialized) return;
+    uint64_t s = 0x123456789ABCDEF0ULL;
+    auto next = [&]() -> uint64_t {
+        s ^= s << 13; s ^= s >> 7; s ^= s << 17; return s;
+    };
+    for (int r = 0; r < NUM_ROWS; r++)
+        for (int c = 0; c < NUM_COLS; c++)
+            for (int p = 0; p < 3; p++)
+                zobristKeys[r][c][p] = next();
+    zobristTurnKey = next();
+    zobristInitialized = true;
+}
+
+static uint64_t computeBoardHash(const vector<vector<int>>& board, bool isMaximizing) {
+    initZobrist();
+    uint64_t h = 0;
+    for (int r = 0; r < NUM_ROWS; r++)
+        for (int c = 0; c < NUM_COLS; c++)
+            h ^= zobristKeys[r][c][board[r][c]];
+    if (!isMaximizing) h ^= zobristTurnKey;
+    return h;
+}
+
+void clearTranspositionTable() {
+    transpositionTable.clear();
+}
 
 
 void printBoard (vector<vector<int>>& board){
@@ -96,6 +140,7 @@ Move userMove(vector<vector<int>>& board){
 }
 
 Move aiMove(vector<vector<int>>& board){
+    clearTranspositionTable();
     Move best = miniMax(board, true, DEPTH);
     best.player = COMPUTER;
     return best;
@@ -278,6 +323,26 @@ Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int a
     if (boardFull){
         return Move(-1, 0, 0);
     }
+
+    // Transposition table lookup
+    uint64_t hash = computeBoardHash(boardCopy, isMaximizing);
+    int origAlpha = alpha, origBeta = beta;
+    {
+        auto it = transpositionTable.find(hash);
+        if (it != transpositionTable.end() && it->second.hash == hash && it->second.depth >= depth) {
+            const TTEntry& entry = it->second;
+            if (entry.bound == EXACT) {
+                return Move(entry.bestCol, 0, entry.score);
+            } else if (entry.bound == LOWERBOUND) {
+                alpha = max(alpha, entry.score);
+            } else { // UPPERBOUND
+                beta = min(beta, entry.score);
+            }
+            if (beta <= alpha) {
+                return Move(entry.bestCol, 0, entry.score);
+            }
+        }
+    }
     
     if (isMaximizing){
         Move bestMove(-1, COMPUTER, -1000);
@@ -299,6 +364,15 @@ Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int a
                 }
             }
         }
+        BoundType bound;
+        // Scores are always from the maximizer's perspective.
+        // fail-low  (score <= origAlpha): true value is at most this  -> UPPERBOUND
+        // fail-high (score >= origBeta) : true value is at least this -> LOWERBOUND
+        // otherwise the full window was searched                       -> EXACT
+        if (bestMove.score <= origAlpha) bound = UPPERBOUND;
+        else if (bestMove.score >= origBeta) bound = LOWERBOUND;
+        else bound = EXACT;
+        transpositionTable[hash] = {hash, depth, bestMove.score, bestMove.col, bound};
         return bestMove;
     } else {
         Move bestMove(-1, PLAYER, 1000);
@@ -320,6 +394,14 @@ Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int a
                 }
             }
         }
+        BoundType bound;
+        // Same perspective: alpha/beta window is always from the maximizer's view.
+        // alpha cutoff (score <= origAlpha): true value <= stored -> UPPERBOUND
+        // all moves failed high (score >= origBeta): true value >= stored -> LOWERBOUND
+        if (bestMove.score <= origAlpha) bound = UPPERBOUND;
+        else if (bestMove.score >= origBeta) bound = LOWERBOUND;
+        else bound = EXACT;
+        transpositionTable[hash] = {hash, depth, bestMove.score, bestMove.col, bound};
         return bestMove;
     }
 }
