@@ -1,5 +1,6 @@
 #include <vector>
 #include <iostream>
+#include <string>
 #include "connectfour.h"
 
 using namespace std;
