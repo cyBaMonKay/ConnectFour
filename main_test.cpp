@@ -542,6 +542,68 @@ void testMoveStructConstructors() {
     assert_equal(m2.player, PLAYER, "Move_ParamConstructor_Player");
 }
 
+// ============ TRANSPOSITION TABLE TESTS ============
+
+void testMiniMaxDeterministic() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][0] = COMPUTER;
+    board[NUM_ROWS - 1][1] = PLAYER;
+
+    clearTranspositionTable();
+    Move result1 = miniMax(board, true, 4);
+
+    clearTranspositionTable();
+    Move result2 = miniMax(board, true, 4);
+
+    assert_equal(result2.col,   result1.col,   "MiniMax_Deterministic_Col");
+    assert_equal(result2.score, result1.score, "MiniMax_Deterministic_Score");
+}
+
+void testTranspositionTableCacheHit() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][3] = COMPUTER;
+    board[NUM_ROWS - 1][4] = PLAYER;
+
+    clearTranspositionTable();
+    Move fresh  = miniMax(board, true, 3); // populates TT
+    Move cached = miniMax(board, true, 3); // reuses TT entries
+
+    assert_equal(cached.score, fresh.score, "TranspositionTable_CacheHit_Score");
+    assert_equal(cached.col,   fresh.col,   "TranspositionTable_CacheHit_Col");
+}
+
+void testTranspositionTableDepthAware() {
+    // A depth-4 search populates TT; a subsequent depth-3 search on the same
+    // position should reuse those entries (depth 4 >= 3) and return a valid move.
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][3] = COMPUTER;
+
+    clearTranspositionTable();
+    Move deeper    = miniMax(board, true, 4); // populates TT with depth-4 entries
+    Move shallower = miniMax(board, true, 3); // root entry reused from TT
+
+    assert_equal(shallower.score, deeper.score, "TranspositionTable_DepthAware_Score");
+    assert_true(shallower.col >= 0 && shallower.col < NUM_COLS, "TranspositionTable_DepthAware_ValidCol");
+}
+
+void testTranspositionTableDoesNotAffectCorrectness() {
+    // TT must not corrupt the result for a well-known tactical position.
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][0] = COMPUTER;
+    board[NUM_ROWS - 1][1] = COMPUTER;
+    board[NUM_ROWS - 1][2] = COMPUTER;
+
+    clearTranspositionTable();
+    Move result = miniMax(board, true, 1);
+
+    assert_equal(result.col,   3,    "TranspositionTable_Correctness_Col");
+    assert_equal(result.score, 1000, "TranspositionTable_Correctness_Score");
+}
+
 int main() {
     cout << "========================================" << endl;
     cout << "   CONNECT FOUR - UNIT TEST SUITE" << endl;
@@ -587,6 +649,10 @@ int main() {
     testIsWinningMove_DiagonalDownLeft();
     testIsWinningMove_NoWin();
     testGetDropRow();
+    testMiniMaxDeterministic();
+    testTranspositionTableCacheHit();
+    testTranspositionTableDepthAware();
+    testTranspositionTableDoesNotAffectCorrectness();
     testInitHeights_EmptyBoard();
     testInitHeights_PartialColumn();
     testInitHeights_FullColumn();
