@@ -1,5 +1,6 @@
 #include <vector>
 #include <iostream>
+#include <string>
 #include "connectfour.h"
 
 using namespace std;
@@ -437,6 +438,101 @@ void testGetDropRow() {
     assert_equal(getDropRow(board, 1), -1, "GetDropRow_FullColumn");
 }
 
+void testInitHeights_EmptyBoard() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    vector<int> heights(NUM_COLS);
+    initHeights(board, heights);
+    for (int c = 0; c < NUM_COLS; c++) {
+        assert_equal(heights[c], NUM_ROWS - 1, "InitHeights_EmptyColumn_" + to_string(c));
+    }
+}
+
+void testInitHeights_PartialColumn() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][2] = PLAYER;
+    board[NUM_ROWS - 2][2] = COMPUTER;
+    vector<int> heights(NUM_COLS);
+    initHeights(board, heights);
+    assert_equal(heights[2], NUM_ROWS - 3, "InitHeights_PartialColumn");
+}
+
+void testInitHeights_FullColumn() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    for (int r = 0; r < NUM_ROWS; r++) board[r][0] = PLAYER;
+    vector<int> heights(NUM_COLS);
+    initHeights(board, heights);
+    assert_equal(heights[0], -1, "InitHeights_FullColumn");
+}
+
+void testMakeMoveWithHeights() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    vector<int> heights(NUM_COLS);
+    initHeights(board, heights);
+    makeMove(board, heights, Move(3, PLAYER));
+    assert_equal(board[NUM_ROWS - 1][3], PLAYER, "MakeMoveWithHeights_PiecePlaced");
+    assert_equal(heights[3], NUM_ROWS - 2, "MakeMoveWithHeights_HeightDecremented");
+}
+
+void testUndoMoveWithHeights() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    vector<int> heights(NUM_COLS);
+    initHeights(board, heights);
+    makeMove(board, heights, Move(2, PLAYER));
+    makeMove(board, heights, Move(2, 0));  // undo
+    assert_equal(board[NUM_ROWS - 1][2], 0, "UndoMoveWithHeights_BoardCleared");
+    assert_equal(heights[2], NUM_ROWS - 1, "UndoMoveWithHeights_HeightRestored");
+}
+
+void testGetDropRowWithHeights() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    vector<int> heights(NUM_COLS);
+    initHeights(board, heights);
+    assert_equal(getDropRow(heights, 0), NUM_ROWS - 1, "GetDropRowWithHeights_EmptyColumn");
+    makeMove(board, heights, Move(0, PLAYER));
+    assert_equal(getDropRow(heights, 0), NUM_ROWS - 2, "GetDropRowWithHeights_OneInColumn");
+}
+
+void testRepeatedMakeUndoWithHeights() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    vector<int> heights(NUM_COLS);
+    initHeights(board, heights);
+
+    // Make and undo multiple times in column 0; board and height must be restored each time
+    for (int i = 0; i < 10; i++) {
+        makeMove(board, heights, Move(0, PLAYER));
+        makeMove(board, heights, Move(0, 0));  // undo
+    }
+    assert_equal(board[NUM_ROWS - 1][0], 0, "RepeatedMakeUndo_BoardClean");
+    assert_equal(heights[0], NUM_ROWS - 1, "RepeatedMakeUndo_HeightRestored");
+
+    // Stack multiple pieces then undo them all
+    makeMove(board, heights, Move(0, PLAYER));
+    makeMove(board, heights, Move(0, COMPUTER));
+    makeMove(board, heights, Move(0, PLAYER));
+    assert_equal(board[NUM_ROWS - 1][0], PLAYER,   "RepeatedMakeUndo_StackBottom");
+    assert_equal(board[NUM_ROWS - 2][0], COMPUTER, "RepeatedMakeUndo_StackMiddle");
+    assert_equal(board[NUM_ROWS - 3][0], PLAYER,   "RepeatedMakeUndo_StackTop");
+    assert_equal(heights[0], NUM_ROWS - 4, "RepeatedMakeUndo_HeightAfterStack");
+
+    makeMove(board, heights, Move(0, 0));  // undo top
+    assert_equal(board[NUM_ROWS - 3][0], 0, "RepeatedMakeUndo_UndoTop");
+    assert_equal(heights[0], NUM_ROWS - 3, "RepeatedMakeUndo_HeightAfterUndoTop");
+
+    makeMove(board, heights, Move(0, 0));  // undo middle
+    assert_equal(board[NUM_ROWS - 2][0], 0, "RepeatedMakeUndo_UndoMiddle");
+
+    makeMove(board, heights, Move(0, 0));  // undo bottom
+    assert_equal(board[NUM_ROWS - 1][0], 0, "RepeatedMakeUndo_UndoBottom");
+    assert_equal(heights[0], NUM_ROWS - 1, "RepeatedMakeUndo_HeightFullyRestored");
+}
+
 void testMoveStructConstructors() {
     Move m1;
     assert_equal(m1.col, -1, "Move_DefaultConstructor_Col");
@@ -557,6 +653,13 @@ int main() {
     testTranspositionTableCacheHit();
     testTranspositionTableDepthAware();
     testTranspositionTableDoesNotAffectCorrectness();
+    testInitHeights_EmptyBoard();
+    testInitHeights_PartialColumn();
+    testInitHeights_FullColumn();
+    testMakeMoveWithHeights();
+    testUndoMoveWithHeights();
+    testGetDropRowWithHeights();
+    testRepeatedMakeUndoWithHeights();
 
     cout << endl << "========================================" << endl;
     cout << "TOTAL TESTS: " << (testsPassed + testsFailed) << endl;
