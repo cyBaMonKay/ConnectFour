@@ -238,6 +238,7 @@ void testEvaluateBoardComputerHorizontalThreat() {
     board[NUM_ROWS - 1][2] = COMPUTER;
 
     int score = evaluateBoard(board);
+    assert_equal(score, 7, "EvaluateBoard_ComputerHorizontalThreat_ExactScore");
     assert_true(score > 0, "EvaluateBoard_ComputerHorizontalThreat_Positive");
     assert_true(score < 1000, "EvaluateBoard_ComputerHorizontalThreat_NonTerminal");
 }
@@ -250,6 +251,7 @@ void testEvaluateBoardPlayerHorizontalThreat() {
     board[NUM_ROWS - 1][2] = PLAYER;
 
     int score = evaluateBoard(board);
+    assert_equal(score, -7, "EvaluateBoard_PlayerHorizontalThreat_ExactScore");
     assert_true(score < 0, "EvaluateBoard_PlayerHorizontalThreat_Negative");
     assert_true(score > -1000, "EvaluateBoard_PlayerHorizontalThreat_NonTerminal");
 }
@@ -262,6 +264,7 @@ void testEvaluateBoardComputerVerticalThreat() {
     board[NUM_ROWS - 3][0] = COMPUTER;
 
     int score = evaluateBoard(board);
+    assert_equal(score, 7, "EvaluateBoard_ComputerVerticalThreat_ExactScore");
     assert_true(score > 0, "EvaluateBoard_ComputerVerticalThreat_Positive");
     assert_true(score < 1000, "EvaluateBoard_ComputerVerticalThreat_NonTerminal");
 }
@@ -274,6 +277,7 @@ void testEvaluateBoardPlayerVerticalThreat() {
     board[NUM_ROWS - 3][0] = PLAYER;
 
     int score = evaluateBoard(board);
+    assert_equal(score, -7, "EvaluateBoard_PlayerVerticalThreat_ExactScore");
     assert_true(score < 0, "EvaluateBoard_PlayerVerticalThreat_Negative");
     assert_true(score > -1000, "EvaluateBoard_PlayerVerticalThreat_NonTerminal");
 }
