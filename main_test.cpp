@@ -608,6 +608,62 @@ void testTranspositionTableDoesNotAffectCorrectness() {
     assert_equal(result.score, 1000, "TranspositionTable_Correctness_Score");
 }
 
+// ============ ITERATIVE DEEPENING TESTS ============
+
+void testAiMove_TakesImmediateWin() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][0] = COMPUTER;
+    board[NUM_ROWS - 1][1] = COMPUTER;
+    board[NUM_ROWS - 1][2] = COMPUTER;
+
+    Move result = aiMove(board);
+
+    assert_equal(result.col, 3, "AiMove_TakesImmediateWin_Col");
+    assert_equal(result.player, COMPUTER, "AiMove_TakesImmediateWin_Player");
+}
+
+void testAiMove_BlocksImmediateLoss() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][0] = PLAYER;
+    board[NUM_ROWS - 1][1] = PLAYER;
+    board[NUM_ROWS - 1][2] = PLAYER;
+
+    Move result = aiMove(board);
+
+    assert_equal(result.col, 3, "AiMove_BlocksImmediateLoss_Col");
+    assert_equal(result.player, COMPUTER, "AiMove_BlocksImmediateLoss_Player");
+}
+
+void testAiMove_ReturnsValidColumn() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+
+    Move result = aiMove(board);
+
+    assert_true(result.col >= 0 && result.col < NUM_COLS, "AiMove_ReturnsValidColumn_Col");
+    assert_equal(result.player, COMPUTER, "AiMove_ReturnsValidColumn_Player");
+}
+
+void testIterativeDeepeningConsistency() {
+    // Iterative deepening (aiMove) must find the same winning move as a direct search.
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][0] = COMPUTER;
+    board[NUM_ROWS - 1][1] = COMPUTER;
+    board[NUM_ROWS - 1][2] = COMPUTER;
+
+    Move aiResult = aiMove(board);
+
+    clearTranspositionTable();
+    Move directResult = miniMax(board, true, DEPTH);
+
+    // Both strategies must identify column 3 as the winning move.
+    assert_equal(aiResult.col, 3, "IterativeDeepening_WinningMove_AiMove_Col");
+    assert_equal(directResult.col, 3, "IterativeDeepening_WinningMove_Direct_Col");
+}
+
 int main() {
     cout << "========================================" << endl;
     cout << "   CONNECT FOUR - UNIT TEST SUITE" << endl;
@@ -657,6 +713,10 @@ int main() {
     testTranspositionTableCacheHit();
     testTranspositionTableDepthAware();
     testTranspositionTableDoesNotAffectCorrectness();
+    testAiMove_TakesImmediateWin();
+    testAiMove_BlocksImmediateLoss();
+    testAiMove_ReturnsValidColumn();
+    testIterativeDeepeningConsistency();
     testInitHeights_EmptyBoard();
     testInitHeights_PartialColumn();
     testInitHeights_FullColumn();

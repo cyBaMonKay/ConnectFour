@@ -161,7 +161,10 @@ Move userMove(vector<vector<int>>& board){
 
 Move aiMove(vector<vector<int>>& board){
     clearTranspositionTable();
-    Move best = miniMax(board, true, DEPTH);
+    Move best(-1, COMPUTER, -1000);
+    for (int d = 1; d <= DEPTH; d++) {
+        best = miniMax(board, true, d);
+    }
     best.player = COMPUTER;
     return best;
 }
@@ -371,41 +374,56 @@ Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int a
     // Transposition table lookup
     uint64_t hash = computeBoardHash(boardCopy, isMaximizing);
     int origAlpha = alpha, origBeta = beta;
+    int ttBestCol = -1;
     {
         auto it = transpositionTable.find(hash);
-        if (it != transpositionTable.end() && it->second.hash == hash && it->second.depth >= depth) {
-            const TTEntry& entry = it->second;
-            if (entry.bound == EXACT) {
-                return Move(entry.bestCol, 0, entry.score);
-            } else if (entry.bound == LOWERBOUND) {
-                alpha = max(alpha, entry.score);
-            } else { // UPPERBOUND
-                beta = min(beta, entry.score);
-            }
-            if (beta <= alpha) {
-                return Move(entry.bestCol, 0, entry.score);
+        if (it != transpositionTable.end() && it->second.hash == hash) {
+            ttBestCol = it->second.bestCol;
+            if (it->second.depth >= depth) {
+                const TTEntry& entry = it->second;
+                if (entry.bound == EXACT) {
+                    return Move(entry.bestCol, 0, entry.score);
+                } else if (entry.bound == LOWERBOUND) {
+                    alpha = max(alpha, entry.score);
+                } else { // UPPERBOUND
+                    beta = min(beta, entry.score);
+                }
+                if (beta <= alpha) {
+                    return Move(entry.bestCol, 0, entry.score);
+                }
             }
         }
     }
-    
+
+    // Build dynamic move order: try TT best column first, then center-first fallback
+    int orderedMoves[NUM_COLS];
+    int numMoves = 0;
+    if (ttBestCol >= 0 && ttBestCol < NUM_COLS && boardCopy[0][ttBestCol] == 0) {
+        orderedMoves[numMoves++] = ttBestCol;
+    }
+    for (int i = 0; i < NUM_COLS; i++) {
+        int c = moveOrder[i];
+        if (c != ttBestCol && boardCopy[0][c] == 0) {
+            orderedMoves[numMoves++] = c;
+        }
+    }
+
     if (isMaximizing){
         Move bestMove(-1, COMPUTER, -1000);
-        for (int i = 0; i < NUM_COLS; i++){
-            int c = moveOrder[i];
-            if (boardCopy[0][c] == 0){
-                int dropRow = getDropRow(*heights, c);
-                makeMove(boardCopy, *heights, Move(c, COMPUTER));
-                Move result = miniMax(boardCopy, false, depth - 1, alpha, beta, dropRow, c, heights);
-                makeMove(boardCopy, *heights, Move(c, 0)); //undo the move
-                if (result.score > bestMove.score){
-                    bestMove = Move(c, COMPUTER, result.score);
-                }
-                if (result.score > alpha){
-                    alpha = result.score;
-                }
-                if (beta <= alpha){
-                    break; // Beta cutoff
-                }
+        for (int i = 0; i < numMoves; i++){
+            int c = orderedMoves[i];
+            int dropRow = getDropRow(*heights, c);
+            makeMove(boardCopy, *heights, Move(c, COMPUTER));
+            Move result = miniMax(boardCopy, false, depth - 1, alpha, beta, dropRow, c, heights);
+            makeMove(boardCopy, *heights, Move(c, 0)); //undo the move
+            if (result.score > bestMove.score){
+                bestMove = Move(c, COMPUTER, result.score);
+            }
+            if (result.score > alpha){
+                alpha = result.score;
+            }
+            if (beta <= alpha){
+                break; // Beta cutoff
             }
         }
         BoundType bound;
@@ -420,22 +438,20 @@ Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int a
         return bestMove;
     } else {
         Move bestMove(-1, PLAYER, 1000);
-        for (int i = 0; i < NUM_COLS; i++){
-            int c = moveOrder[i];
-            if (boardCopy[0][c] == 0){
-                int dropRow = getDropRow(*heights, c);
-                makeMove(boardCopy, *heights, Move(c, PLAYER));
-                Move result = miniMax(boardCopy, true, depth - 1, alpha, beta, dropRow, c, heights);
-                makeMove(boardCopy, *heights, Move(c, 0)); //undo the move
-                if (result.score < bestMove.score){
-                    bestMove = Move(c, PLAYER, result.score);
-                }
-                if (result.score < beta){
-                    beta = result.score;
-                }
-                if (beta <= alpha){
-                    break; // Alpha cutoff
-                }
+        for (int i = 0; i < numMoves; i++){
+            int c = orderedMoves[i];
+            int dropRow = getDropRow(*heights, c);
+            makeMove(boardCopy, *heights, Move(c, PLAYER));
+            Move result = miniMax(boardCopy, true, depth - 1, alpha, beta, dropRow, c, heights);
+            makeMove(boardCopy, *heights, Move(c, 0)); //undo the move
+            if (result.score < bestMove.score){
+                bestMove = Move(c, PLAYER, result.score);
+            }
+            if (result.score < beta){
+                beta = result.score;
+            }
+            if (beta <= alpha){
+                break; // Alpha cutoff
             }
         }
         BoundType bound;
