@@ -664,6 +664,86 @@ void testIterativeDeepeningConsistency() {
     assert_equal(directResult.col, 3, "IterativeDeepening_WinningMove_Direct_Col");
 }
 
+// ============ TACTICAL PREPASS TESTS ============
+
+void testTacticalPrepass_ImmediateWin() {
+    // Three computer pieces in a row – prepass must find the winning column.
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][0] = COMPUTER;
+    board[NUM_ROWS - 1][1] = COMPUTER;
+    board[NUM_ROWS - 1][2] = COMPUTER;
+
+    Move result = tacticalPrepass(board);
+
+    assert_equal(result.col, 3, "TacticalPrepass_ImmediateWin_Col");
+    assert_equal(result.score, 1000, "TacticalPrepass_ImmediateWin_Score");
+    assert_equal(result.player, COMPUTER, "TacticalPrepass_ImmediateWin_Player");
+}
+
+void testTacticalPrepass_ImmediateBlock() {
+    // Three player pieces in a row – prepass must return the blocking column.
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][0] = PLAYER;
+    board[NUM_ROWS - 1][1] = PLAYER;
+    board[NUM_ROWS - 1][2] = PLAYER;
+
+    Move result = tacticalPrepass(board);
+
+    assert_equal(result.col, 3, "TacticalPrepass_ImmediateBlock_Col");
+    assert_equal(result.player, COMPUTER, "TacticalPrepass_ImmediateBlock_Player");
+}
+
+void testTacticalPrepass_WinPreferredOverBlock() {
+    // When both a win and a block are possible, the computer should take the win.
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    // Computer can win at column 3 (completing cols 0-2).
+    board[NUM_ROWS - 1][0] = COMPUTER;
+    board[NUM_ROWS - 1][1] = COMPUTER;
+    board[NUM_ROWS - 1][2] = COMPUTER;
+    // Player also threatens column 3 (completing cols 3-6), but the computer
+    // win check runs first so the prepass returns col 3 as a win, not a block.
+    board[NUM_ROWS - 1][4] = PLAYER;
+    board[NUM_ROWS - 1][5] = PLAYER;
+    board[NUM_ROWS - 1][6] = PLAYER;
+
+    Move result = tacticalPrepass(board);
+
+    assert_equal(result.col, 3, "TacticalPrepass_WinOverBlock_Col");
+    assert_equal(result.score, 1000, "TacticalPrepass_WinOverBlock_Score");
+}
+
+void testTacticalPrepass_NoTactic_ReturnsInvalidCol() {
+    // On a nearly empty board there is no immediate tactic.
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+
+    Move result = tacticalPrepass(board);
+
+    assert_equal(result.col, -1, "TacticalPrepass_NoTactic_Col");
+}
+
+void testTacticalPrepass_DoesNotModifyBoard() {
+    // The prepass must leave the board unchanged.
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+    board[NUM_ROWS - 1][0] = COMPUTER;
+    board[NUM_ROWS - 1][1] = COMPUTER;
+    board[NUM_ROWS - 1][2] = COMPUTER;
+
+    vector<vector<int>> snapshot = board;
+    tacticalPrepass(board);
+
+    bool unchanged = true;
+    for (int r = 0; r < NUM_ROWS && unchanged; r++)
+        for (int c = 0; c < NUM_COLS && unchanged; c++)
+            if (board[r][c] != snapshot[r][c]) unchanged = false;
+
+    assert_true(unchanged, "TacticalPrepass_DoesNotModifyBoard");
+}
+
 int main() {
     cout << "========================================" << endl;
     cout << "   CONNECT FOUR - UNIT TEST SUITE" << endl;
@@ -717,6 +797,11 @@ int main() {
     testAiMove_BlocksImmediateLoss();
     testAiMove_ReturnsValidColumn();
     testIterativeDeepeningConsistency();
+    testTacticalPrepass_ImmediateWin();
+    testTacticalPrepass_ImmediateBlock();
+    testTacticalPrepass_WinPreferredOverBlock();
+    testTacticalPrepass_NoTactic_ReturnsInvalidCol();
+    testTacticalPrepass_DoesNotModifyBoard();
     testInitHeights_EmptyBoard();
     testInitHeights_PartialColumn();
     testInitHeights_FullColumn();

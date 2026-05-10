@@ -27,6 +27,8 @@ struct Move {
 };
 
 Move miniMax(vector<vector<int>> &boardCopy, bool isMaximizing, int depth, int alpha = -1000, int beta = 1000, int lastRow = -1, int lastCol = -1, vector<int>* heights = nullptr);
+Move tacticalPrepass(vector<vector<int>>& board);
+bool isWinningMove(vector<vector<int>>& board, int player, int row, int col);
 
 // ============ TRANSPOSITION TABLE ============
 
@@ -159,7 +161,40 @@ Move userMove(vector<vector<int>>& board){
     return Move(col, PLAYER);
 }
 
+// Tactical prepass: check for an immediate win or a forced block before running
+// full minimax.  Returns a valid Move (col >= 0) if a tactic was found, or a
+// Move with col == -1 when neither applies and minimax should be used instead.
+Move tacticalPrepass(vector<vector<int>>& board){
+    // 1. Check if the computer can win immediately.
+    for (int c = 0; c < NUM_COLS; c++){
+        int row = getDropRow(board, c);
+        if (row < 0) continue;          // column full
+        board[row][c] = COMPUTER;
+        bool wins = isWinningMove(board, COMPUTER, row, c);
+        board[row][c] = 0;              // undo
+        if (wins) return Move(c, COMPUTER, 1000);
+    }
+
+    // 2. Check if the player can win immediately (forced block).
+    for (int c = 0; c < NUM_COLS; c++){
+        int row = getDropRow(board, c);
+        if (row < 0) continue;
+        board[row][c] = PLAYER;
+        bool playerWins = isWinningMove(board, PLAYER, row, c);
+        board[row][c] = 0;              // undo
+        if (playerWins) return Move(c, COMPUTER, 0);
+    }
+
+    return Move(-1, COMPUTER, 0); // no immediate tactic found
+}
+
 Move aiMove(vector<vector<int>>& board){
+    // Short-circuit for obvious tactical moves before running full minimax.
+    Move tactic = tacticalPrepass(board);
+    if (tactic.col >= 0) {
+        return tactic;
+    }
+
     clearTranspositionTable();
     Move best(-1, COMPUTER, -1000);
     for (int d = 1; d <= DEPTH; d++) {
