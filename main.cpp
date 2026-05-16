@@ -1,5 +1,4 @@
 #include <iostream>
-#include <vector>
 #include "connectfour.h"
 
 using namespace std;
@@ -11,20 +10,22 @@ void clearConsole() {
     cout << "\033[2J\033[H" << flush;
 }
 
-int main (int argc, char** argv) {
-    vector<vector<int>> board (NUM_ROWS, vector<int> (NUM_COLS));
+int main(int argc, char** argv) {
+    (void)argc;
+    (void)argv;
+
+    BitBoardState board;
     bool gameOver = false;
     unsigned int turns = 0;
     initBoard(board);
 
-    while (!gameOver){
-        if (turns % 2 == 0){ // Player's turn
+    while (!gameOver) {
+        if (turns % 2 == 0) {
             clearConsole();
             printBoard(board);
             cout << "================================" << endl;
             makeMove(board, userMove(board));
-        }  
-         else { // Computer's turn
+        } else {
             makeMove(board, aiMove(board));
             clearConsole();
             printBoard(board);
@@ -33,13 +34,12 @@ int main (int argc, char** argv) {
 
         turns++;
         gameOver = isWinning(board, PLAYER) || isWinning(board, COMPUTER) || turns == NUM_ROWS * NUM_COLS;
-        
     }
 
     cout << "Game Over!" << endl;
-    if (isWinning(board, PLAYER)){
+    if (isWinning(board, PLAYER)) {
         cout << "Congratulations! You win!" << endl;
-    } else if (isWinning(board, COMPUTER)){
+    } else if (isWinning(board, COMPUTER)) {
         cout << "Computer wins! Better luck next time." << endl;
     } else {
         cout << "It's a draw!" << endl;

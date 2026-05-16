@@ -744,6 +744,134 @@ void testTacticalPrepass_DoesNotModifyBoard() {
     assert_true(unchanged, "TacticalPrepass_DoesNotModifyBoard");
 }
 
+// ============ BITBOARD TESTS ============
+
+void testBitBoardInitState() {
+    BitBoardState state;
+    initBoard(state);
+
+    assert_true(state.playerBits == 0ULL, "BitBoard_Init_PlayerBits");
+    assert_true(state.computerBits == 0ULL, "BitBoard_Init_ComputerBits");
+    assert_true(state.occupancy == 0ULL, "BitBoard_Init_Occupancy");
+    for (int c = 0; c < NUM_COLS; c++) {
+        assert_equal(state.heights[c], 0, "BitBoard_Init_Height_" + to_string(c));
+    }
+}
+
+void testBitBoardMakeUndoRoundTrip() {
+    BitBoardState state;
+    initBoard(state);
+
+    vector<Move> sequence = {
+        Move(3, PLAYER), Move(2, COMPUTER), Move(3, PLAYER),
+        Move(4, COMPUTER), Move(1, PLAYER), Move(4, COMPUTER)
+    };
+
+    for (const Move& m : sequence) {
+        makeMove(state, m);
+    }
+
+    uint64_t playerSnapshot = state.playerBits;
+    uint64_t computerSnapshot = state.computerBits;
+    uint64_t occupancySnapshot = state.occupancy;
+    array<int, NUM_COLS> heightsSnapshot = state.heights;
+
+    for (int i = (int)sequence.size() - 1; i >= 0; i--) {
+        makeMove(state, Move(sequence[i].col, 0));
+    }
+
+    assert_true(state.playerBits == 0ULL, "BitBoard_MakeUndo_EmptyPlayerBits");
+    assert_true(state.computerBits == 0ULL, "BitBoard_MakeUndo_EmptyComputerBits");
+    assert_true(state.occupancy == 0ULL, "BitBoard_MakeUndo_EmptyOccupancy");
+    for (int c = 0; c < NUM_COLS; c++) {
+        assert_equal(state.heights[c], 0, "BitBoard_MakeUndo_HeightReset_" + to_string(c));
+    }
+
+    for (const Move& m : sequence) {
+        makeMove(state, m);
+    }
+    assert_true(state.playerBits == playerSnapshot, "BitBoard_MakeUndo_ReplayPlayerBits");
+    assert_true(state.computerBits == computerSnapshot, "BitBoard_MakeUndo_ReplayComputerBits");
+    assert_true(state.occupancy == occupancySnapshot, "BitBoard_MakeUndo_ReplayOccupancy");
+
+    bool sameHeights = true;
+    for (int c = 0; c < NUM_COLS; c++) {
+        if (state.heights[c] != heightsSnapshot[c]) sameHeights = false;
+    }
+    assert_true(sameHeights, "BitBoard_MakeUndo_ReplayHeights");
+}
+
+void testBitBoardLegalMovesAndDropRows() {
+    BitBoardState state;
+    initBoard(state);
+
+    assert_true(isLegalMove(state, 0), "BitBoard_Legal_EmptyColumn");
+    assert_equal(getDropRow(state, 0), NUM_ROWS - 1, "BitBoard_DropRow_EmptyColumn");
+
+    for (int i = 0; i < NUM_ROWS; i++) {
+        makeMove(state, Move(0, (i % 2 == 0) ? PLAYER : COMPUTER));
+    }
+
+    assert_false(isLegalMove(state, 0), "BitBoard_Legal_FullColumn");
+    assert_equal(getDropRow(state, 0), -1, "BitBoard_DropRow_FullColumn");
+}
+
+void testBitBoardWinDetection() {
+    BitBoardState horizontal;
+    initBoard(horizontal);
+    makeMove(horizontal, Move(0, COMPUTER));
+    makeMove(horizontal, Move(1, COMPUTER));
+    makeMove(horizontal, Move(2, COMPUTER));
+    makeMove(horizontal, Move(3, COMPUTER));
+    assert_true(isWinning(horizontal, COMPUTER), "BitBoard_Win_Horizontal");
+
+    BitBoardState vertical;
+    initBoard(vertical);
+    makeMove(vertical, Move(2, PLAYER));
+    makeMove(vertical, Move(2, PLAYER));
+    makeMove(vertical, Move(2, PLAYER));
+    makeMove(vertical, Move(2, PLAYER));
+    assert_true(isWinning(vertical, PLAYER), "BitBoard_Win_Vertical");
+
+    BitBoardState diagonal;
+    initBoard(diagonal);
+    makeMove(diagonal, Move(0, PLAYER));
+    makeMove(diagonal, Move(1, COMPUTER));
+    makeMove(diagonal, Move(1, PLAYER));
+    makeMove(diagonal, Move(2, COMPUTER));
+    makeMove(diagonal, Move(2, COMPUTER));
+    makeMove(diagonal, Move(2, PLAYER));
+    makeMove(diagonal, Move(3, COMPUTER));
+    makeMove(diagonal, Move(3, COMPUTER));
+    makeMove(diagonal, Move(3, COMPUTER));
+    makeMove(diagonal, Move(3, PLAYER));
+    assert_true(isWinning(diagonal, PLAYER), "BitBoard_Win_Diagonal");
+}
+
+void testBitBoardRoundTripVectorConversion() {
+    vector<vector<int>> board(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    initBoard(board);
+
+    makeMove(board, Move(3, PLAYER));
+    makeMove(board, Move(3, COMPUTER));
+    makeMove(board, Move(2, PLAYER));
+    makeMove(board, Move(4, COMPUTER));
+    makeMove(board, Move(2, PLAYER));
+    makeMove(board, Move(1, COMPUTER));
+
+    BitBoardState state = boardToBitBoard(board);
+
+    vector<vector<int>> roundTrip(NUM_ROWS, vector<int>(NUM_COLS, 0));
+    bitBoardToBoard(state, roundTrip);
+
+    bool same = true;
+    for (int r = 0; r < NUM_ROWS && same; r++) {
+        for (int c = 0; c < NUM_COLS && same; c++) {
+            if (board[r][c] != roundTrip[r][c]) same = false;
+        }
+    }
+    assert_true(same, "BitBoard_RoundTrip_VectorConversion");
+}
 int main() {
     cout << "========================================" << endl;
     cout << "   CONNECT FOUR - UNIT TEST SUITE" << endl;
@@ -809,6 +937,11 @@ int main() {
     testUndoMoveWithHeights();
     testGetDropRowWithHeights();
     testRepeatedMakeUndoWithHeights();
+    testBitBoardInitState();
+    testBitBoardMakeUndoRoundTrip();
+    testBitBoardLegalMovesAndDropRows();
+    testBitBoardWinDetection();
+    testBitBoardRoundTripVectorConversion();
 
     cout << endl << "========================================" << endl;
     cout << "TOTAL TESTS: " << (testsPassed + testsFailed) << endl;
@@ -818,3 +951,5 @@ int main() {
 
     return (testsFailed == 0) ? 0 : 1;
 }
+
+
